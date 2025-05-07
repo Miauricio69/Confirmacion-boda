@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Confirmación de Asistencia</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #fdf6ec;
+      color: #4e342e;
+      text-align: center;
+      padding: 30px;
+    }
+
+    h2 {
+      font-size: 2.5em;
+      font-style: italic;
+      margin-bottom: 30px;
+    }
+
+    #search {
+      padding: 12px;
+      width: 60%;
+      font-size: 1.1em;
+      border: 1px solid #a1887f;
+      border-radius: 8px;
+    }
+
+    button {
+      background-color: #a1887f;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 1.1em;
+      margin: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #8d6e63;
+    }
+
+    #resultado {
+      margin-top: 20px;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    #mensaje {
+      margin-bottom: 20px;
+      font-weight: bold;
+      font-size: 1.2em;
+    }
+
+    .borde-perla {
+      border: 6px double #d7ccc8;
+      border-radius: 15px;
+      padding: 20px;
+      margin-top: 30px;
+      background-color: #fffaf4;
+      box-shadow: 0 0 10px rgba(160, 130, 100, 0.2);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+  </style>
+</head>
+<body>
+  <h2>Confirmación de Asistencia</h2>
+
+  <div id="mensaje"></div>
+
+  <input type="text" id="search" placeholder="Escribe tu nombre o apellido" />
+  <button onclick="buscarInvitado()">Buscar</button>
+
+  <div id="resultado" class="borde-perla"></div>
+
+  <script>
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbwXvdTt7CDIwEJbN2_zuv8qfFdrZFaSRPdBl2WrW2qMmCPu2kDWkxhcmxpltbKM3Oyb/exec";
+    let listaInvitados = [];
+
+    // Cargar lista de invitados al iniciar
+    window.onload = async function () {
+      try {
+        const res = await fetch(URL_SCRIPT + "?action=getInvitados");
+        listaInvitados = await res.json();
+      } catch (error) {
+        mostrarMensaje("No se pudo cargar la lista de invitados", true);
+      }
+    };
+
+    function buscarInvitado() {
+      const input = document.getElementById("search").value.trim().toLowerCase();
+      const resultados = listaInvitados.filter(nombre =>
+        nombre.toLowerCase().includes(input)
+      );
+
+      const contenedor = document.getElementById("resultado");
+      contenedor.innerHTML = "";
+
+      if (resultados.length > 0) {
+        resultados.forEach(nombre => {
+          const div = document.createElement("div");
+          div.innerHTML = `
+            <p><strong>${nombre}</strong>, ¿confirmas tu asistencia?</p>
+            <button onclick="confirmar('${nombre}', 'Sí')">Sí</button>
+            <button onclick="confirmar('${nombre}', 'No')">No</button>
+          `;
+          contenedor.appendChild(div);
+        });
+      } else {
+        contenedor.innerHTML = "<p>No se encontró ningún invitado con ese nombre o apellido.</p>";
+      }
+    }
+
+    async function confirmar(nombre, respuesta) {
+      try {
+        const res = await fetch(`${URL_SCRIPT}?action=registrarRespuesta&nombre=${encodeURIComponent(nombre)}&respuesta=${encodeURIComponent(respuesta)}`);
+        const texto = await res.text();
+        mostrarMensaje(`¡Gracias, ${nombre}, tu respuesta ha sido registrada!`);
+        document.getElementById("resultado").innerHTML = "";
+      } catch (error) {
+        mostrarMensaje("Ocurrió un error al guardar tu respuesta. Intenta nuevamente.", true);
+      }
+    }
+
+    function mostrarMensaje(texto, esError = false) {
+      const mensaje = document.getElementById("mensaje");
+      mensaje.textContent = texto;
+      mensaje.style.color = esError ? "red" : "green";
+    }
+  </script>
+</body>
+</html>
